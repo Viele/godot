@@ -318,7 +318,7 @@ Vector3 AStar3D::get_closest_position_in_segment(const Vector3 &p_point) const {
 	return closest_point;
 }
 
-bool AStar3D::_solve(Point *begin_point, Point *end_point) {
+bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t constraints) {
 	pass++;
 
 	if (!end_point->enabled) {
@@ -350,6 +350,10 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point) {
 			Point *e = *(it.value); // The neighbor point.
 
 			if (!e->enabled || e->closed_pass == pass) {
+				continue;
+			}
+
+			if (constraints && (e->constraints & constraints)){
 				continue;
 			}
 
@@ -414,7 +418,7 @@ real_t AStar3D::_compute_cost(int64_t p_from_id, int64_t p_to_id) {
 	return from_point->pos.distance_to(to_point->pos);
 }
 
-Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id) {
+Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
 	ERR_FAIL_COND_V_MSG(!from_exists, Vector<Vector3>(), vformat("Can't get point path. Point with id: %d doesn't exist.", p_from_id));
@@ -432,7 +436,7 @@ Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id) {
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point);
+	bool found_route = _solve(begin_point, end_point, constraints);
 	if (!found_route) {
 		return Vector<Vector3>();
 	}
@@ -463,7 +467,7 @@ Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id) {
 	return path;
 }
 
-Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id) {
+Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
 	ERR_FAIL_COND_V_MSG(!from_exists, Vector<int64_t>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_from_id));
@@ -481,7 +485,7 @@ Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id) {
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point);
+	bool found_route = _solve(begin_point, end_point, constraints);
 	if (!found_route) {
 		return Vector<int64_t>();
 	}
@@ -528,6 +532,30 @@ bool AStar3D::is_point_disabled(int64_t p_id) const {
 	return !p->enabled;
 }
 
+void AStar3D::add_constraint(int64_t p_id, int64_t constraint){
+	Point *p = nullptr;
+	bool p_exists = points.lookup(p_id, p);
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't add constraint. Point with id: %d doesn't exist.", p_id));
+
+	p->constraints |= constraint;
+}
+
+void AStar3D::set_constraints(int64_t p_id, int64_t constraint){
+	Point *p = nullptr;
+	bool p_exists = points.lookup(p_id, p);
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set constraints. Point with id: %d doesn't exist.", p_id));
+
+	p->constraints = constraint;
+}
+
+void AStar3D::clear_constraints(int64_t p_id){
+	Point *p = nullptr;
+	bool p_exists = points.lookup(p_id, p);
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't clear constraints. Point with id: %d doesn't exist.", p_id));
+
+	p->constraints = 0;
+}
+
 void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_available_point_id"), &AStar3D::get_available_point_id);
 	ClassDB::bind_method(D_METHOD("add_point", "id", "position", "weight_scale"), &AStar3D::add_point, DEFVAL(1.0));
@@ -555,8 +583,12 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position", "include_disabled"), &AStar3D::get_closest_point, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_closest_position_in_segment", "to_position"), &AStar3D::get_closest_position_in_segment);
 
-	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id"), &AStar3D::get_point_path);
-	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id"), &AStar3D::get_id_path);
+	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id", "constraints"), &AStar3D::get_point_path, DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "constraints"), &AStar3D::get_id_path, DEFVAL(0));
+
+	ClassDB::bind_method(D_METHOD("add_constraint", "id", "constraint"), &AStar3D::add_constraint);
+	ClassDB::bind_method(D_METHOD("set_constraints", "id", "constraint"), &AStar3D::set_constraints);
+	ClassDB::bind_method(D_METHOD("clear_constraints", "id"), &AStar3D::clear_constraints);
 
 	GDVIRTUAL_BIND(_estimate_cost, "from_id", "to_id")
 	GDVIRTUAL_BIND(_compute_cost, "from_id", "to_id")
