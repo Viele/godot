@@ -50,7 +50,7 @@ class AStar3D : public RefCounted {
 		Vector3 pos;
 		real_t weight_scale = 0;
 		bool enabled = false;
-		int64_t constraints = 0;
+		int64_t flags = 0;
 
 		OAHashMap<int64_t, Point *> neighbors = 4u;
 		OAHashMap<int64_t, Point *> unlinked_neighbours = 4u;
@@ -111,7 +111,7 @@ class AStar3D : public RefCounted {
 	OAHashMap<int64_t, Point *> points;
 	HashSet<Segment, Segment> segments;
 
-	bool _solve(Point *begin_point, Point *end_point, int64_t constraints = 0);
+	bool _solve(Point *begin_point, Point *end_point, int64_t required_flags = 0, int64_t skip_flags = 0);
 
 protected:
 	static void _bind_methods();
@@ -150,14 +150,14 @@ public:
 	int64_t get_closest_point(const Vector3 &p_point, bool p_include_disabled = false) const;
 	Vector3 get_closest_position_in_segment(const Vector3 &p_point) const;
 
-	Vector<Vector3> get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints = 0);
-	Vector<int64_t> get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints = 0);
+	Vector<Vector3> get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0);
+	Vector<int64_t> get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0);
 
-	void add_constraint(int64_t p_id, int64_t constraint);
-	void remove_constraint(int64_t p_id, int64_t constraint);
-	void set_constraints(int64_t p_id, int64_t constraint);
-	bool has_constraint(int64_t p_id, int64_t constraint);
-	void clear_constraints(int64_t p_id);
+	void add_flags(int64_t p_id, int64_t flag);
+	void remove_flags(int64_t p_id, int64_t flag);
+	void set_flags(int64_t p_id, int64_t flag);
+	bool has_flags(int64_t p_id, int64_t flag);
+	void clear_flags(int64_t p_id);
 
 	AStar3D() {}
 	~AStar3D();

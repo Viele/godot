@@ -318,7 +318,7 @@ Vector3 AStar3D::get_closest_position_in_segment(const Vector3 &p_point) const {
 	return closest_point;
 }
 
-bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t constraints) {
+bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags) {
 	pass++;
 
 	if (!end_point->enabled) {
@@ -353,7 +353,11 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t constraints) 
 				continue;
 			}
 
-			if ((e->constraints & constraints) != constraints){
+			if ((e->flags & required_flags) != required_flags){
+				continue;
+			}
+
+			if ((e->flags & skip_flags)){
 				continue;
 			}
 
@@ -418,7 +422,7 @@ real_t AStar3D::_compute_cost(int64_t p_from_id, int64_t p_to_id) {
 	return from_point->pos.distance_to(to_point->pos);
 }
 
-Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints) {
+Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags, int64_t skip_flags) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
 	ERR_FAIL_COND_V_MSG(!from_exists, Vector<Vector3>(), vformat("Can't get point path. Point with id: %d doesn't exist.", p_from_id));
@@ -436,7 +440,7 @@ Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int6
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point, constraints);
+	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags);
 	if (!found_route) {
 		return Vector<Vector3>();
 	}
@@ -467,7 +471,7 @@ Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int6
 	return path;
 }
 
-Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints) {
+Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags, int64_t skip_flags) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
 	ERR_FAIL_COND_V_MSG(!from_exists, Vector<int64_t>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_from_id));
@@ -485,7 +489,7 @@ Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point, constraints);
+	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags);
 	if (!found_route) {
 		return Vector<int64_t>();
 	}
@@ -532,44 +536,44 @@ bool AStar3D::is_point_disabled(int64_t p_id) const {
 	return !p->enabled;
 }
 
-void AStar3D::add_constraint(int64_t p_id, int64_t constraint){
+void AStar3D::add_flags(int64_t p_id, int64_t flag){
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't add constraint. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't add flag. Point with id: %d doesn't exist.", p_id));
 
-	p->constraints |= constraint;
+	p->flags |= flag;
 }
 
-void AStar3D::remove_constraint(int64_t p_id, int64_t constraint){
+void AStar3D::remove_flags(int64_t p_id, int64_t flag){
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't remove constraint. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't remove flag. Point with id: %d doesn't exist.", p_id));
 
-	p->constraints &= ~constraint;
+	p->flags &= ~flag;
 }
 
-void AStar3D::set_constraints(int64_t p_id, int64_t constraint){
+void AStar3D::set_flags(int64_t p_id, int64_t flag){
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set constraints. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set flag. Point with id: %d doesn't exist.", p_id));
 
-	p->constraints = constraint;
+	p->flags = flag;
 }
 
-bool AStar3D::has_constraint(int64_t p_id, int64_t constraint){
+bool AStar3D::has_flags(int64_t p_id, int64_t flag){
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_V_MSG(!p_exists, false, vformat("Can't query constraints. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_V_MSG(!p_exists, false, vformat("Can't query flags. Point with id: %d doesn't exist.", p_id));
 
-	return p->constraints & constraint;
+	return p->flags & flag;
 }
 
-void AStar3D::clear_constraints(int64_t p_id){
+void AStar3D::clear_flags(int64_t p_id){
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't clear constraints. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't clear flags. Point with id: %d doesn't exist.", p_id));
 
-	p->constraints = 0;
+	p->flags = 0;
 }
 
 void AStar3D::_bind_methods() {
@@ -599,14 +603,14 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position", "include_disabled"), &AStar3D::get_closest_point, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_closest_position_in_segment", "to_position"), &AStar3D::get_closest_position_in_segment);
 
-	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id", "constraints"), &AStar3D::get_point_path, DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "constraints"), &AStar3D::get_id_path, DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id", "required_flags", "skip_flags"), &AStar3D::get_point_path, DEFVAL(0), DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "required_flags", "skip_flags"), &AStar3D::get_id_path, DEFVAL(0), DEFVAL(0));
 
-	ClassDB::bind_method(D_METHOD("add_constraint", "id", "constraint"), &AStar3D::add_constraint);
-	ClassDB::bind_method(D_METHOD("remove_constraint", "id", "constraint"), &AStar3D::remove_constraint);
-	ClassDB::bind_method(D_METHOD("set_constraints", "id", "constraint"), &AStar3D::set_constraints);
-	ClassDB::bind_method(D_METHOD("has_constraint", "id", "constraint"), &AStar3D::has_constraint);
-	ClassDB::bind_method(D_METHOD("clear_constraints", "id"), &AStar3D::clear_constraints);
+	ClassDB::bind_method(D_METHOD("add_flags", "id", "flag"), &AStar3D::add_flags);
+	ClassDB::bind_method(D_METHOD("remove_flags", "id", "flag"), &AStar3D::remove_flags);
+	ClassDB::bind_method(D_METHOD("set_flags", "id", "flag"), &AStar3D::set_flags);
+	ClassDB::bind_method(D_METHOD("has_flags", "id", "flag"), &AStar3D::has_flags);
+	ClassDB::bind_method(D_METHOD("clear_flags", "id"), &AStar3D::clear_flags);
 
 	GDVIRTUAL_BIND(_estimate_cost, "from_id", "to_id")
 	GDVIRTUAL_BIND(_compute_cost, "from_id", "to_id")
