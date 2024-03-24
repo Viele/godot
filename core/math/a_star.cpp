@@ -353,7 +353,7 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t constraints) 
 				continue;
 			}
 
-			if (constraints && !(e->constraints & constraints)){
+			if ((e->constraints & constraints) != constraints){
 				continue;
 			}
 
