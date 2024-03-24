@@ -154,7 +154,9 @@ public:
 	Vector<int64_t> get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t constraints = 0);
 
 	void add_constraint(int64_t p_id, int64_t constraint);
+	void remove_constraint(int64_t p_id, int64_t constraint);
 	void set_constraints(int64_t p_id, int64_t constraint);
+	bool has_constraint(int64_t p_id, int64_t constraint);
 	void clear_constraints(int64_t p_id);
 
 	AStar3D() {}

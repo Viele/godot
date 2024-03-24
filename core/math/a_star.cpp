@@ -353,7 +353,7 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t constraints) 
 				continue;
 			}
 
-			if (constraints && (e->constraints & constraints)){
+			if (constraints && !(e->constraints & constraints)){
 				continue;
 			}
 
@@ -540,12 +540,28 @@ void AStar3D::add_constraint(int64_t p_id, int64_t constraint){
 	p->constraints |= constraint;
 }
 
+void AStar3D::remove_constraint(int64_t p_id, int64_t constraint){
+	Point *p = nullptr;
+	bool p_exists = points.lookup(p_id, p);
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't remove constraint. Point with id: %d doesn't exist.", p_id));
+
+	p->constraints &= ~constraint;
+}
+
 void AStar3D::set_constraints(int64_t p_id, int64_t constraint){
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set constraints. Point with id: %d doesn't exist.", p_id));
 
 	p->constraints = constraint;
+}
+
+bool AStar3D::has_constraint(int64_t p_id, int64_t constraint){
+	Point *p = nullptr;
+	bool p_exists = points.lookup(p_id, p);
+	ERR_FAIL_COND_V_MSG(!p_exists, false, vformat("Can't query constraints. Point with id: %d doesn't exist.", p_id));
+
+	return p->constraints & constraint;
 }
 
 void AStar3D::clear_constraints(int64_t p_id){
@@ -587,7 +603,9 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "constraints"), &AStar3D::get_id_path, DEFVAL(0));
 
 	ClassDB::bind_method(D_METHOD("add_constraint", "id", "constraint"), &AStar3D::add_constraint);
+	ClassDB::bind_method(D_METHOD("remove_constraint", "id", "constraint"), &AStar3D::remove_constraint);
 	ClassDB::bind_method(D_METHOD("set_constraints", "id", "constraint"), &AStar3D::set_constraints);
+	ClassDB::bind_method(D_METHOD("has_constraint", "id", "constraint"), &AStar3D::has_constraint);
 	ClassDB::bind_method(D_METHOD("clear_constraints", "id"), &AStar3D::clear_constraints);
 
 	GDVIRTUAL_BIND(_estimate_cost, "from_id", "to_id")
