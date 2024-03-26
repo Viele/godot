@@ -219,6 +219,16 @@ PackedInt64Array AStar3D::get_point_ids() {
 	return point_list;
 }
 
+
+Vector<int64_t> AStar3D::get_connections(){
+	Vector<int64_t> connections_;
+	for (const Segment &segment : segments){
+		connections_.push_back(segment.key.first);
+		connections_.push_back(segment.key.second);
+	}
+	return connections_;
+}
+
 Vector<int64_t> AStar3D::get_point_connections(int64_t p_id) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
@@ -587,6 +597,7 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has_point", "id"), &AStar3D::has_point);
 	ClassDB::bind_method(D_METHOD("get_point_connections", "id"), &AStar3D::get_point_connections);
 	ClassDB::bind_method(D_METHOD("get_point_ids"), &AStar3D::get_point_ids);
+	ClassDB::bind_method(D_METHOD("get_connections"), &AStar3D::get_connections);
 
 	ClassDB::bind_method(D_METHOD("set_point_disabled", "id", "disabled"), &AStar3D::set_point_disabled, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("is_point_disabled", "id"), &AStar3D::is_point_disabled);
