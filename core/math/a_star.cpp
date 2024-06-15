@@ -586,10 +586,10 @@ void AStar3D::clear_flags(int64_t p_id){
 	p->flags = 0;
 }
 
-int64_t AStar3D::get_flags(int64_t p_id){
+int64_t AStar3D::get_flags(int64_t p_id) const{
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't get flags. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_V_MSG(!p_exists, 0, vformat("Can't get flags. Point with id: %d doesn't exist.", p_id));
 
 	return p->flags;
 }
