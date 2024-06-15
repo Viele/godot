@@ -586,6 +586,14 @@ void AStar3D::clear_flags(int64_t p_id){
 	p->flags = 0;
 }
 
+int64_t AStar3D::get_flags(int64_t p_id){
+	Point *p = nullptr;
+	bool p_exists = points.lookup(p_id, p);
+	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't get flags. Point with id: %d doesn't exist.", p_id));
+
+	return p->flags;
+}
+
 void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_available_point_id"), &AStar3D::get_available_point_id);
 	ClassDB::bind_method(D_METHOD("add_point", "id", "position", "weight_scale"), &AStar3D::add_point, DEFVAL(1.0));
@@ -622,6 +630,7 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_flags", "id", "flag"), &AStar3D::set_flags);
 	ClassDB::bind_method(D_METHOD("has_flags", "id", "flag"), &AStar3D::has_flags);
 	ClassDB::bind_method(D_METHOD("clear_flags", "id"), &AStar3D::clear_flags);
+	ClassDB::bind_method(D_METHOD("get_flags", "id"), &AStar3D::get_flags);
 
 	GDVIRTUAL_BIND(_estimate_cost, "from_id", "to_id")
 	GDVIRTUAL_BIND(_compute_cost, "from_id", "to_id")

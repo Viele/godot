@@ -159,6 +159,7 @@ public:
 	void set_flags(int64_t p_id, int64_t flag);
 	bool has_flags(int64_t p_id, int64_t flag);
 	void clear_flags(int64_t p_id);
+	int64_t get_flags(int64_t p_id);
 
 	AStar3D() {}
 	~AStar3D();
