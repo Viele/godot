@@ -372,7 +372,7 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flag
 
 			Segment s(p->id, e->id);
 			HashSet<Segment, Segment>::Iterator segment = segments.find(s);
-			if (segment && (segment->flags & connection_skip_flags)) {
+			if (segment->flags & connection_skip_flags) {
 				/* Connection is disabled for this search. */
 				continue;
 			}
@@ -620,6 +620,13 @@ void AStar3D::remove_connection_flags(int64_t a, int64_t b, int64_t flag) {
 	segments.insert(mod);
 }
 
+int64_t AStar3D::get_connection_flags(int64_t a, int64_t b){
+	Segment s(a, b);
+	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
+	ERR_FAIL_COND_V_MSG(!segment, 0, vformat("Cannot get connection flags, points %d and %d are not connected.", a, b));
+	return segment->flags;
+}
+
 void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_available_point_id"), &AStar3D::get_available_point_id);
 	ClassDB::bind_method(D_METHOD("add_point", "id", "position", "weight_scale"), &AStar3D::add_point, DEFVAL(1.0));
@@ -660,6 +667,7 @@ void AStar3D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("add_connection_flags", "id_a", "id_b", "flag"), &AStar3D::add_connection_flags);
 	ClassDB::bind_method(D_METHOD("remove_connection_flags", "id_a", "id_b", "flag"), &AStar3D::remove_connection_flags);
+	ClassDB::bind_method(D_METHOD("get_connection_flags", "id_a", "id_b"), &AStar3D::get_connection_flags);
 
 	GDVIRTUAL_BIND(_estimate_cost, "from_id", "to_id")
 	GDVIRTUAL_BIND(_compute_cost, "from_id", "to_id")

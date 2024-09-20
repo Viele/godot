@@ -165,6 +165,7 @@ public:
 
 	void add_connection_flags(int64_t a, int64_t b, int64_t flag);
 	void remove_connection_flags(int64_t a, int64_t b, int64_t flag);
+	int64_t get_connection_flags(int64_t a, int64_t b);
 
 	AStar3D() {}
 	~AStar3D();
