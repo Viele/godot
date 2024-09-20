@@ -219,10 +219,9 @@ PackedInt64Array AStar3D::get_point_ids() {
 	return point_list;
 }
 
-
-Vector<int64_t> AStar3D::get_connections(){
+Vector<int64_t> AStar3D::get_connections() {
 	Vector<int64_t> connections_;
-	for (const Segment &segment : segments){
+	for (const Segment &segment : segments) {
 		connections_.push_back(segment.key.first);
 		connections_.push_back(segment.key.second);
 	}
@@ -328,7 +327,7 @@ Vector3 AStar3D::get_closest_position_in_segment(const Vector3 &p_point) const {
 	return closest_point;
 }
 
-bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags) {
+bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags) {
 	pass++;
 
 	if (!end_point->enabled) {
@@ -363,11 +362,18 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flag
 				continue;
 			}
 
-			if ((e->flags & required_flags) != required_flags){
+			if ((e->flags & required_flags) != required_flags) {
 				continue;
 			}
 
-			if ((e->flags & skip_flags)){
+			if (e->flags & skip_flags) {
+				continue;
+			}
+
+			Segment s(p->id, e->id);
+			HashSet<Segment, Segment>::Iterator segment = segments.find(s);
+			if (segment && (segment->flags & connection_skip_flags)) {
+				/* Connection is disabled for this search. */
 				continue;
 			}
 
@@ -481,7 +487,7 @@ Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int6
 	return path;
 }
 
-Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags, int64_t skip_flags) {
+Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
 	ERR_FAIL_COND_V_MSG(!from_exists, Vector<int64_t>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_from_id));
@@ -546,7 +552,7 @@ bool AStar3D::is_point_disabled(int64_t p_id) const {
 	return !p->enabled;
 }
 
-void AStar3D::add_flags(int64_t p_id, int64_t flag){
+void AStar3D::add_flags(int64_t p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't add flag. Point with id: %d doesn't exist.", p_id));
@@ -554,7 +560,7 @@ void AStar3D::add_flags(int64_t p_id, int64_t flag){
 	p->flags |= flag;
 }
 
-void AStar3D::remove_flags(int64_t p_id, int64_t flag){
+void AStar3D::remove_flags(int64_t p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't remove flag. Point with id: %d doesn't exist.", p_id));
@@ -562,7 +568,7 @@ void AStar3D::remove_flags(int64_t p_id, int64_t flag){
 	p->flags &= ~flag;
 }
 
-void AStar3D::set_flags(int64_t p_id, int64_t flag){
+void AStar3D::set_flags(int64_t p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set flag. Point with id: %d doesn't exist.", p_id));
@@ -570,7 +576,7 @@ void AStar3D::set_flags(int64_t p_id, int64_t flag){
 	p->flags = flag;
 }
 
-bool AStar3D::has_flags(int64_t p_id, int64_t flag){
+bool AStar3D::has_flags(int64_t p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, false, vformat("Can't query flags. Point with id: %d doesn't exist.", p_id));
@@ -578,7 +584,7 @@ bool AStar3D::has_flags(int64_t p_id, int64_t flag){
 	return p->flags & flag;
 }
 
-void AStar3D::clear_flags(int64_t p_id){
+void AStar3D::clear_flags(int64_t p_id) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't clear flags. Point with id: %d doesn't exist.", p_id));
@@ -586,12 +592,32 @@ void AStar3D::clear_flags(int64_t p_id){
 	p->flags = 0;
 }
 
-int64_t AStar3D::get_flags(int64_t p_id) const{
+int64_t AStar3D::get_flags(int64_t p_id) const {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, 0, vformat("Can't get flags. Point with id: %d doesn't exist.", p_id));
 
 	return p->flags;
+}
+
+void AStar3D::add_connection_flags(int64_t a, int64_t b, int64_t flag) {
+	Segment s(a, b);
+	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
+	ERR_FAIL_COND_MSG(!segment, vformat("Cannot set connection flag, points %d and %d are not connected.", a, b));
+	Segment mod = *segment;
+	mod.flags |= flag;
+	segments.remove(segment);
+	segments.insert(mod);
+}
+
+void AStar3D::remove_connection_flags(int64_t a, int64_t b, int64_t flag) {
+	Segment s(a, b);
+	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
+	ERR_FAIL_COND_MSG(!segment, vformat("Cannot set connection flag, points %d and %d are not connected.", a, b));
+	Segment mod = *segment;
+	mod.flags &= ~flag;
+	segments.remove(segment);
+	segments.insert(mod);
 }
 
 void AStar3D::_bind_methods() {
@@ -623,7 +649,7 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_closest_position_in_segment", "to_position"), &AStar3D::get_closest_position_in_segment);
 
 	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id", "required_flags", "skip_flags"), &AStar3D::get_point_path, DEFVAL(0), DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "required_flags", "skip_flags"), &AStar3D::get_id_path, DEFVAL(0), DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "required_flags", "skip_flags", "connections_skip_flags"), &AStar3D::get_id_path, DEFVAL(0), DEFVAL(0), DEFVAL(0));
 
 	ClassDB::bind_method(D_METHOD("add_flags", "id", "flag"), &AStar3D::add_flags);
 	ClassDB::bind_method(D_METHOD("remove_flags", "id", "flag"), &AStar3D::remove_flags);
@@ -631,6 +657,9 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has_flags", "id", "flag"), &AStar3D::has_flags);
 	ClassDB::bind_method(D_METHOD("clear_flags", "id"), &AStar3D::clear_flags);
 	ClassDB::bind_method(D_METHOD("get_flags", "id"), &AStar3D::get_flags);
+
+	ClassDB::bind_method(D_METHOD("add_connection_flags", "id_a", "id_b", "flag"), &AStar3D::add_connection_flags);
+	ClassDB::bind_method(D_METHOD("remove_connection_flags", "id_a", "id_b", "flag"), &AStar3D::remove_connection_flags);
 
 	GDVIRTUAL_BIND(_estimate_cost, "from_id", "to_id")
 	GDVIRTUAL_BIND(_compute_cost, "from_id", "to_id")
