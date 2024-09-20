@@ -30,6 +30,7 @@
 
 #include "a_star.h"
 
+#include "core/string/print_string.h"
 #include "core/math/geometry_3d.h"
 #include "core/object/script_language.h"
 
@@ -505,7 +506,7 @@ Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags);
+	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags, connection_skip_flags);
 	if (!found_route) {
 		return Vector<int64_t>();
 	}
@@ -620,7 +621,7 @@ void AStar3D::remove_connection_flags(int64_t a, int64_t b, int64_t flag) {
 	segments.insert(mod);
 }
 
-int64_t AStar3D::get_connection_flags(int64_t a, int64_t b){
+int64_t AStar3D::get_connection_flags(int64_t a, int64_t b) {
 	Segment s(a, b);
 	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
 	ERR_FAIL_COND_V_MSG(!segment, 0, vformat("Cannot get connection flags, points %d and %d are not connected.", a, b));
