@@ -31,6 +31,8 @@
 #ifndef A_STAR_H
 #define A_STAR_H
 
+#include <unordered_map>
+
 #include "core/object/gdvirtual.gen.inc"
 #include "core/object/ref_counted.h"
 #include "core/templates/oa_hash_map.h"
@@ -86,8 +88,6 @@ class AStar3D : public RefCounted {
 		};
 		unsigned char direction = NONE;
 
-		uint64_t flags = 0;
-
 		static uint32_t hash(const Segment &p_seg) {
 			return PairHash<int64_t, int64_t>().hash(p_seg.key);
 		}
@@ -112,6 +112,7 @@ class AStar3D : public RefCounted {
 
 	OAHashMap<int64_t, Point *> points;
 	HashSet<Segment, Segment> segments;
+	OAHashMap<Segment, int64_t, Segment> segment_flags = 4u;
 
 	bool _solve(Point *begin_point, Point *end_point, int64_t required_flags = 0, int64_t skip_flags = 0, int64_t connection_skip_flags = 0);
 

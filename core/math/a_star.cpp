@@ -30,7 +30,6 @@
 
 #include "a_star.h"
 
-#include "core/string/print_string.h"
 #include "core/math/geometry_3d.h"
 #include "core/object/script_language.h"
 
@@ -371,9 +370,8 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flag
 				continue;
 			}
 
-			Segment s(p->id, e->id);
-			HashSet<Segment, Segment>::Iterator segment = segments.find(s);
-			if (segment->flags & connection_skip_flags) {
+			const int64_t connection_flags = get_connection_flags(p->id, e->id);
+			if (connection_flags & connection_skip_flags) {
 				/* Connection is disabled for this search. */
 				continue;
 			}
@@ -603,29 +601,30 @@ int64_t AStar3D::get_flags(int64_t p_id) const {
 
 void AStar3D::add_connection_flags(int64_t a, int64_t b, int64_t flag) {
 	Segment s(a, b);
-	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
-	ERR_FAIL_COND_MSG(!segment, vformat("Cannot set connection flag, points %d and %d are not connected.", a, b));
-	Segment mod = *segment;
-	mod.flags |= flag;
-	segments.remove(segment);
-	segments.insert(mod);
+	int64_t *flag_ptr = segment_flags.lookup_ptr(s);
+	if (flag_ptr == nullptr) {
+		segment_flags.insert(s, flag);
+		return;
+	}
+	*flag_ptr |= flag;
 }
 
 void AStar3D::remove_connection_flags(int64_t a, int64_t b, int64_t flag) {
 	Segment s(a, b);
-	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
-	ERR_FAIL_COND_MSG(!segment, vformat("Cannot set connection flag, points %d and %d are not connected.", a, b));
-	Segment mod = *segment;
-	mod.flags &= ~flag;
-	segments.remove(segment);
-	segments.insert(mod);
+	int64_t *flag_ptr = segment_flags.lookup_ptr(s);
+	if (flag_ptr == nullptr) {
+		return;
+	}
+	*flag_ptr &= ~flag;
 }
 
 int64_t AStar3D::get_connection_flags(int64_t a, int64_t b) {
 	Segment s(a, b);
-	HashSet<Segment, Segment>::Iterator segment = segments.find(s);
-	ERR_FAIL_COND_V_MSG(!segment, 0, vformat("Cannot get connection flags, points %d and %d are not connected.", a, b));
-	return segment->flags;
+	int64_t *flag_ptr = segment_flags.lookup_ptr(s);
+	if (flag_ptr == nullptr) {
+		return 0;
+	}
+	return *flag_ptr;
 }
 
 void AStar3D::_bind_methods() {
