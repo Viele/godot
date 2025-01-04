@@ -133,11 +133,6 @@ DWORD CrashHandlerException(EXCEPTION_POINTERS *ep) {
 		msg = proj_settings->get("debug/settings/crash_handler/message");
 	}
 
-	// Tell MainLoop about the crash. This can be handled by users too in Node.
-	if (OS::get_singleton()->get_main_loop()) {
-		OS::get_singleton()->get_main_loop()->notification(MainLoop::NOTIFICATION_CRASH);
-	}
-
 	print_error("\n================================================================");
 	print_error(vformat("%s: Program crashed", __FUNCTION__));
 
@@ -222,6 +217,11 @@ DWORD CrashHandlerException(EXCEPTION_POINTERS *ep) {
 
 	print_error("-- END OF BACKTRACE --");
 	print_error("================================================================");
+
+	// Tell MainLoop about the crash. This can be handled by users too in Node.
+	if (OS::get_singleton()->get_main_loop()) {
+		OS::get_singleton()->get_main_loop()->notification(MainLoop::NOTIFICATION_CRASH);
+	}
 
 	SymCleanup(process);
 
