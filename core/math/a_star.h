@@ -41,6 +41,8 @@
 	A* pathfinding algorithm.
 */
 
+using PointID = int32_t;
+
 class AStar3D : public RefCounted {
 	GDCLASS(AStar3D, RefCounted);
 	friend class AStar2D;
@@ -48,14 +50,14 @@ class AStar3D : public RefCounted {
 	struct Point {
 		Point() {}
 
-		int64_t id = 0;
+		PointID id = 0;
 		Vector3 pos;
 		real_t weight_scale = 0;
 		bool enabled = false;
 		int64_t flags = 0;
 
-		OAHashMap<int64_t, Point *> neighbors = 4u;
-		OAHashMap<int64_t, Point *> unlinked_neighbours = 4u;
+		OAHashMap<PointID, Point *> neighbors = 4u;
+		OAHashMap<PointID, Point *> unlinked_neighbours = 4u;
 
 		// Used for pathfinding.
 		Point *prev_point = nullptr;
@@ -78,7 +80,7 @@ class AStar3D : public RefCounted {
 	};
 
 	struct Segment {
-		Pair<int64_t, int64_t> key;
+		Pair<PointID, PointID> key;
 
 		enum {
 			NONE = 0,
@@ -89,12 +91,12 @@ class AStar3D : public RefCounted {
 		unsigned char direction = NONE;
 
 		static uint32_t hash(const Segment &p_seg) {
-			return PairHash<int64_t, int64_t>().hash(p_seg.key);
+			return PairHash<PointID, PointID>().hash(p_seg.key);
 		}
 		bool operator==(const Segment &p_s) const { return key == p_s.key; }
 
 		Segment() {}
-		Segment(int64_t p_from, int64_t p_to) {
+		Segment(PointID p_from, PointID p_to) {
 			if (p_from < p_to) {
 				key.first = p_from;
 				key.second = p_to;
@@ -107,10 +109,10 @@ class AStar3D : public RefCounted {
 		}
 	};
 
-	int64_t last_free_id = 0;
+	PointID last_free_id = 0;
 	uint64_t pass = 1;
 
-	OAHashMap<int64_t, Point *> points;
+	OAHashMap<PointID, Point *> points;
 	HashSet<Segment, Segment> segments;
 	OAHashMap<Segment, int64_t, Segment> segment_flags = 4u;
 
@@ -119,54 +121,54 @@ class AStar3D : public RefCounted {
 protected:
 	static void _bind_methods();
 
-	virtual real_t _estimate_cost(int64_t p_from_id, int64_t p_to_id);
-	virtual real_t _compute_cost(int64_t p_from_id, int64_t p_to_id);
+	virtual real_t _estimate_cost(PointID p_from_id, PointID p_to_id);
+	virtual real_t _compute_cost(PointID p_from_id, PointID p_to_id);
 
-	GDVIRTUAL2RC(real_t, _estimate_cost, int64_t, int64_t)
-	GDVIRTUAL2RC(real_t, _compute_cost, int64_t, int64_t)
+	GDVIRTUAL2RC(real_t, _estimate_cost, PointID, PointID)
+	GDVIRTUAL2RC(real_t, _compute_cost, PointID, PointID)
 
 public:
-	int64_t get_available_point_id() const;
+	PointID get_available_point_id() const;
 
-	void add_point(int64_t p_id, const Vector3 &p_pos, real_t p_weight_scale = 1);
-	Vector3 get_point_position(int64_t p_id) const;
-	void set_point_position(int64_t p_id, const Vector3 &p_pos);
-	real_t get_point_weight_scale(int64_t p_id) const;
-	void set_point_weight_scale(int64_t p_id, real_t p_weight_scale);
-	void remove_point(int64_t p_id);
-	bool has_point(int64_t p_id) const;
-	Vector<int64_t> get_point_connections(int64_t p_id);
-	PackedInt64Array get_point_ids();
-	Vector<int64_t> get_connections();
+	void add_point(PointID p_id, const Vector3 &p_pos, real_t p_weight_scale = 1);
+	Vector3 get_point_position(PointID p_id) const;
+	void set_point_position(PointID p_id, const Vector3 &p_pos);
+	real_t get_point_weight_scale(PointID p_id) const;
+	void set_point_weight_scale(PointID p_id, real_t p_weight_scale);
+	void remove_point(PointID p_id);
+	bool has_point(PointID p_id) const;
+	Vector<PointID> get_point_connections(PointID p_id);
+	PackedInt32Array get_point_ids();
+	Vector<PointID> get_connections();
 
-	void set_point_disabled(int64_t p_id, bool p_disabled = true);
-	bool is_point_disabled(int64_t p_id) const;
+	void set_point_disabled(PointID p_id, bool p_disabled = true);
+	bool is_point_disabled(PointID p_id) const;
 
-	void connect_points(int64_t p_id, int64_t p_with_id, bool bidirectional = true);
-	void disconnect_points(int64_t p_id, int64_t p_with_id, bool bidirectional = true);
-	bool are_points_connected(int64_t p_id, int64_t p_with_id, bool bidirectional = true) const;
+	void connect_points(PointID p_id, PointID p_with_id, bool bidirectional = true);
+	void disconnect_points(PointID p_id, PointID p_with_id, bool bidirectional = true);
+	bool are_points_connected(PointID p_id, PointID p_with_id, bool bidirectional = true) const;
 
 	int64_t get_point_count() const;
 	int64_t get_point_capacity() const;
 	void reserve_space(int64_t p_num_nodes);
 	void clear();
 
-	int64_t get_closest_point(const Vector3 &p_point, bool p_include_disabled = false) const;
+	PointID get_closest_point(const Vector3 &p_point, bool p_include_disabled = false) const;
 	Vector3 get_closest_position_in_segment(const Vector3 &p_point) const;
 
-	Vector<Vector3> get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0);
-	Vector<int64_t> get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0, int64_t connection_skip_flags = 0);
+	Vector<Vector3> get_point_path(PointID p_from_id, PointID p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0);
+	Vector<PointID> get_id_path(PointID p_from_id, PointID p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0, int64_t connection_skip_flags = 0);
 
-	void add_flags(int64_t p_id, int64_t flag);
-	void remove_flags(int64_t p_id, int64_t flag);
-	void set_flags(int64_t p_id, int64_t flag);
-	bool has_flags(int64_t p_id, int64_t flag);
-	void clear_flags(int64_t p_id);
-	int64_t get_flags(int64_t p_id) const;
+	void add_flags(PointID p_id, int64_t flag);
+	void remove_flags(PointID p_id, int64_t flag);
+	void set_flags(PointID p_id, int64_t flag);
+	bool has_flags(PointID p_id, int64_t flag);
+	void clear_flags(PointID p_id);
+	int64_t get_flags(PointID p_id) const;
 
-	void add_connection_flags(int64_t a, int64_t b, int64_t flag);
-	void remove_connection_flags(int64_t a, int64_t b, int64_t flag);
-	int64_t get_connection_flags(int64_t a, int64_t b);
+	void add_connection_flags(PointID a, PointID b, int64_t flag);
+	void remove_connection_flags(PointID a, PointID b, int64_t flag);
+	int64_t get_connection_flags(PointID a, PointID b);
 
 	AStar3D() {}
 	~AStar3D();
@@ -197,8 +199,8 @@ public:
 	void set_point_weight_scale(int64_t p_id, real_t p_weight_scale);
 	void remove_point(int64_t p_id);
 	bool has_point(int64_t p_id) const;
-	Vector<int64_t> get_point_connections(int64_t p_id);
-	PackedInt64Array get_point_ids();
+	Vector<PointID> get_point_connections(PointID p_id);
+	PackedInt32Array get_point_ids();
 
 	void set_point_disabled(int64_t p_id, bool p_disabled = true);
 	bool is_point_disabled(int64_t p_id) const;

@@ -33,19 +33,19 @@
 #include "core/math/geometry_3d.h"
 #include "core/object/script_language.h"
 
-int64_t AStar3D::get_available_point_id() const {
+PointID AStar3D::get_available_point_id() const {
 	if (points.has(last_free_id)) {
-		int64_t cur_new_id = last_free_id + 1;
+		PointID cur_new_id = last_free_id + 1;
 		while (points.has(cur_new_id)) {
 			cur_new_id++;
 		}
-		const_cast<int64_t &>(last_free_id) = cur_new_id;
+		const_cast<PointID &>(last_free_id) = cur_new_id;
 	}
 
 	return last_free_id;
 }
 
-void AStar3D::add_point(int64_t p_id, const Vector3 &p_pos, real_t p_weight_scale) {
+void AStar3D::add_point(PointID p_id, const Vector3 &p_pos, real_t p_weight_scale) {
 	ERR_FAIL_COND_MSG(p_id < 0, vformat("Can't add a point with negative id: %d.", p_id));
 	ERR_FAIL_COND_MSG(p_weight_scale < 0.0, vformat("Can't add a point with weight scale less than 0.0: %f.", p_weight_scale));
 
@@ -68,7 +68,7 @@ void AStar3D::add_point(int64_t p_id, const Vector3 &p_pos, real_t p_weight_scal
 	}
 }
 
-Vector3 AStar3D::get_point_position(int64_t p_id) const {
+Vector3 AStar3D::get_point_position(PointID p_id) const {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, Vector3(), vformat("Can't get point's position. Point with id: %d doesn't exist.", p_id));
@@ -76,7 +76,7 @@ Vector3 AStar3D::get_point_position(int64_t p_id) const {
 	return p->pos;
 }
 
-void AStar3D::set_point_position(int64_t p_id, const Vector3 &p_pos) {
+void AStar3D::set_point_position(PointID p_id, const Vector3 &p_pos) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set point's position. Point with id: %d doesn't exist.", p_id));
@@ -84,7 +84,7 @@ void AStar3D::set_point_position(int64_t p_id, const Vector3 &p_pos) {
 	p->pos = p_pos;
 }
 
-real_t AStar3D::get_point_weight_scale(int64_t p_id) const {
+real_t AStar3D::get_point_weight_scale(PointID p_id) const {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, 0, vformat("Can't get point's weight scale. Point with id: %d doesn't exist.", p_id));
@@ -92,7 +92,7 @@ real_t AStar3D::get_point_weight_scale(int64_t p_id) const {
 	return p->weight_scale;
 }
 
-void AStar3D::set_point_weight_scale(int64_t p_id, real_t p_weight_scale) {
+void AStar3D::set_point_weight_scale(PointID p_id, real_t p_weight_scale) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set point's weight scale. Point with id: %d doesn't exist.", p_id));
@@ -101,12 +101,12 @@ void AStar3D::set_point_weight_scale(int64_t p_id, real_t p_weight_scale) {
 	p->weight_scale = p_weight_scale;
 }
 
-void AStar3D::remove_point(int64_t p_id) {
+void AStar3D::remove_point(PointID p_id) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't remove point. Point with id: %d doesn't exist.", p_id));
 
-	for (OAHashMap<int64_t, Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
+	for (OAHashMap<PointID, Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
 		Segment s(p_id, (*it.key));
 		segments.erase(s);
 
@@ -114,7 +114,7 @@ void AStar3D::remove_point(int64_t p_id) {
 		(*it.value)->unlinked_neighbours.remove(p->id);
 	}
 
-	for (OAHashMap<int64_t, Point *>::Iterator it = p->unlinked_neighbours.iter(); it.valid; it = p->unlinked_neighbours.next_iter(it)) {
+	for (OAHashMap<PointID, Point *>::Iterator it = p->unlinked_neighbours.iter(); it.valid; it = p->unlinked_neighbours.next_iter(it)) {
 		Segment s(p_id, (*it.key));
 		segments.erase(s);
 
@@ -127,7 +127,7 @@ void AStar3D::remove_point(int64_t p_id) {
 	last_free_id = p_id;
 }
 
-void AStar3D::connect_points(int64_t p_id, int64_t p_with_id, bool bidirectional) {
+void AStar3D::connect_points(PointID p_id, PointID p_with_id, bool bidirectional) {
 	ERR_FAIL_COND_MSG(p_id == p_with_id, vformat("Can't connect point with id: %d to itself.", p_id));
 
 	Point *a = nullptr;
@@ -165,7 +165,7 @@ void AStar3D::connect_points(int64_t p_id, int64_t p_with_id, bool bidirectional
 	segments.insert(s);
 }
 
-void AStar3D::disconnect_points(int64_t p_id, int64_t p_with_id, bool bidirectional) {
+void AStar3D::disconnect_points(PointID p_id, PointID p_with_id, bool bidirectional) {
 	Point *a = nullptr;
 	bool a_exists = points.lookup(p_id, a);
 	ERR_FAIL_COND_MSG(!a_exists, vformat("Can't disconnect points. Point with id: %d doesn't exist.", p_id));
@@ -205,22 +205,22 @@ void AStar3D::disconnect_points(int64_t p_id, int64_t p_with_id, bool bidirectio
 	}
 }
 
-bool AStar3D::has_point(int64_t p_id) const {
+bool AStar3D::has_point(PointID p_id) const {
 	return points.has(p_id);
 }
 
-PackedInt64Array AStar3D::get_point_ids() {
-	PackedInt64Array point_list;
+PackedInt32Array AStar3D::get_point_ids() {
+	PackedInt32Array point_list;
 
-	for (OAHashMap<int64_t, Point *>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<PointID, Point *>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 		point_list.push_back(*(it.key));
 	}
 
 	return point_list;
 }
 
-Vector<int64_t> AStar3D::get_connections() {
-	Vector<int64_t> connections_;
+Vector<PointID> AStar3D::get_connections() {
+	Vector<PointID> connections_;
 	for (const Segment &segment : segments) {
 		connections_.push_back(segment.key.first);
 		connections_.push_back(segment.key.second);
@@ -228,21 +228,21 @@ Vector<int64_t> AStar3D::get_connections() {
 	return connections_;
 }
 
-Vector<int64_t> AStar3D::get_point_connections(int64_t p_id) {
+Vector<PointID> AStar3D::get_point_connections(PointID p_id) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
-	ERR_FAIL_COND_V_MSG(!p_exists, Vector<int64_t>(), vformat("Can't get point's connections. Point with id: %d doesn't exist.", p_id));
+	ERR_FAIL_COND_V_MSG(!p_exists, Vector<PointID>(), vformat("Can't get point's connections. Point with id: %d doesn't exist.", p_id));
 
-	Vector<int64_t> point_list;
+	Vector<PointID> point_list;
 
-	for (OAHashMap<int64_t, Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
+	for (OAHashMap<PointID, Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
 		point_list.push_back((*it.key));
 	}
 
 	return point_list;
 }
 
-bool AStar3D::are_points_connected(int64_t p_id, int64_t p_with_id, bool bidirectional) const {
+bool AStar3D::are_points_connected(PointID p_id, PointID p_with_id, bool bidirectional) const {
 	Segment s(p_id, p_with_id);
 	const HashSet<Segment, Segment>::Iterator element = segments.find(s);
 
@@ -252,7 +252,7 @@ bool AStar3D::are_points_connected(int64_t p_id, int64_t p_with_id, bool bidirec
 
 void AStar3D::clear() {
 	last_free_id = 0;
-	for (OAHashMap<int64_t, Point *>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<PointID, Point *>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 		memdelete(*(it.value));
 	}
 	segments.clear();
@@ -273,11 +273,11 @@ void AStar3D::reserve_space(int64_t p_num_nodes) {
 	points.reserve(p_num_nodes);
 }
 
-int64_t AStar3D::get_closest_point(const Vector3 &p_point, bool p_include_disabled) const {
+PointID AStar3D::get_closest_point(const Vector3 &p_point, bool p_include_disabled) const {
 	int64_t closest_id = -1;
 	real_t closest_dist = 1e20;
 
-	for (OAHashMap<int64_t, Point *>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<PointID, Point *>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 		if (!p_include_disabled && !(*it.value)->enabled) {
 			continue; // Disabled points should not be considered.
 		}
@@ -355,7 +355,7 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flag
 		open_list.remove_at(open_list.size() - 1);
 		p->closed_pass = pass; // Mark the point as closed.
 
-		for (OAHashMap<int64_t, Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
+		for (OAHashMap<PointID, Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
 			Point *e = *(it.value); // The neighbor point.
 
 			if (!e->enabled || e->closed_pass == pass) {
@@ -403,7 +403,7 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flag
 	return found_route;
 }
 
-real_t AStar3D::_estimate_cost(int64_t p_from_id, int64_t p_to_id) {
+real_t AStar3D::_estimate_cost(PointID p_from_id, PointID p_to_id) {
 	real_t scost;
 	if (GDVIRTUAL_CALL(_estimate_cost, p_from_id, p_to_id, scost)) {
 		return scost;
@@ -420,7 +420,7 @@ real_t AStar3D::_estimate_cost(int64_t p_from_id, int64_t p_to_id) {
 	return from_point->pos.distance_to(to_point->pos);
 }
 
-real_t AStar3D::_compute_cost(int64_t p_from_id, int64_t p_to_id) {
+real_t AStar3D::_compute_cost(PointID p_from_id, PointID p_to_id) {
 	real_t scost;
 	if (GDVIRTUAL_CALL(_compute_cost, p_from_id, p_to_id, scost)) {
 		return scost;
@@ -437,7 +437,7 @@ real_t AStar3D::_compute_cost(int64_t p_from_id, int64_t p_to_id) {
 	return from_point->pos.distance_to(to_point->pos);
 }
 
-Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags, int64_t skip_flags) {
+Vector<Vector3> AStar3D::get_point_path(PointID p_from_id, PointID p_to_id, int64_t required_flags, int64_t skip_flags) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
 	ERR_FAIL_COND_V_MSG(!from_exists, Vector<Vector3>(), vformat("Can't get point path. Point with id: %d doesn't exist.", p_from_id));
@@ -486,17 +486,17 @@ Vector<Vector3> AStar3D::get_point_path(int64_t p_from_id, int64_t p_to_id, int6
 	return path;
 }
 
-Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags) {
+Vector<PointID> AStar3D::get_id_path(PointID p_from_id, PointID p_to_id, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags) {
 	Point *a = nullptr;
 	bool from_exists = points.lookup(p_from_id, a);
-	ERR_FAIL_COND_V_MSG(!from_exists, Vector<int64_t>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_from_id));
+	ERR_FAIL_COND_V_MSG(!from_exists, Vector<PointID>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_from_id));
 
 	Point *b = nullptr;
 	bool to_exists = points.lookup(p_to_id, b);
-	ERR_FAIL_COND_V_MSG(!to_exists, Vector<int64_t>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_to_id));
+	ERR_FAIL_COND_V_MSG(!to_exists, Vector<PointID>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_to_id));
 
 	if (a == b) {
-		Vector<int64_t> ret;
+		Vector<PointID> ret;
 		ret.push_back(a->id);
 		return ret;
 	}
@@ -506,7 +506,7 @@ Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t
 
 	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags, connection_skip_flags);
 	if (!found_route) {
-		return Vector<int64_t>();
+		return Vector<PointID>();
 	}
 
 	Point *p = end_point;
@@ -516,11 +516,11 @@ Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t
 		p = p->prev_point;
 	}
 
-	Vector<int64_t> path;
+	Vector<PointID> path;
 	path.resize(pc);
 
 	{
-		int64_t *w = path.ptrw();
+		PointID *w = path.ptrw();
 
 		p = end_point;
 		int64_t idx = pc - 1;
@@ -535,7 +535,7 @@ Vector<int64_t> AStar3D::get_id_path(int64_t p_from_id, int64_t p_to_id, int64_t
 	return path;
 }
 
-void AStar3D::set_point_disabled(int64_t p_id, bool p_disabled) {
+void AStar3D::set_point_disabled(PointID p_id, bool p_disabled) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set if point is disabled. Point with id: %d doesn't exist.", p_id));
@@ -543,7 +543,7 @@ void AStar3D::set_point_disabled(int64_t p_id, bool p_disabled) {
 	p->enabled = !p_disabled;
 }
 
-bool AStar3D::is_point_disabled(int64_t p_id) const {
+bool AStar3D::is_point_disabled(PointID p_id) const {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, false, vformat("Can't get if point is disabled. Point with id: %d doesn't exist.", p_id));
@@ -551,7 +551,7 @@ bool AStar3D::is_point_disabled(int64_t p_id) const {
 	return !p->enabled;
 }
 
-void AStar3D::add_flags(int64_t p_id, int64_t flag) {
+void AStar3D::add_flags(PointID p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't add flag. Point with id: %d doesn't exist.", p_id));
@@ -559,7 +559,7 @@ void AStar3D::add_flags(int64_t p_id, int64_t flag) {
 	p->flags |= flag;
 }
 
-void AStar3D::remove_flags(int64_t p_id, int64_t flag) {
+void AStar3D::remove_flags(PointID p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't remove flag. Point with id: %d doesn't exist.", p_id));
@@ -567,7 +567,7 @@ void AStar3D::remove_flags(int64_t p_id, int64_t flag) {
 	p->flags &= ~flag;
 }
 
-void AStar3D::set_flags(int64_t p_id, int64_t flag) {
+void AStar3D::set_flags(PointID p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't set flag. Point with id: %d doesn't exist.", p_id));
@@ -575,7 +575,7 @@ void AStar3D::set_flags(int64_t p_id, int64_t flag) {
 	p->flags = flag;
 }
 
-bool AStar3D::has_flags(int64_t p_id, int64_t flag) {
+bool AStar3D::has_flags(PointID p_id, int64_t flag) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, false, vformat("Can't query flags. Point with id: %d doesn't exist.", p_id));
@@ -583,7 +583,7 @@ bool AStar3D::has_flags(int64_t p_id, int64_t flag) {
 	return p->flags & flag;
 }
 
-void AStar3D::clear_flags(int64_t p_id) {
+void AStar3D::clear_flags(PointID p_id) {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_MSG(!p_exists, vformat("Can't clear flags. Point with id: %d doesn't exist.", p_id));
@@ -591,7 +591,7 @@ void AStar3D::clear_flags(int64_t p_id) {
 	p->flags = 0;
 }
 
-int64_t AStar3D::get_flags(int64_t p_id) const {
+int64_t AStar3D::get_flags(PointID p_id) const {
 	Point *p = nullptr;
 	bool p_exists = points.lookup(p_id, p);
 	ERR_FAIL_COND_V_MSG(!p_exists, 0, vformat("Can't get flags. Point with id: %d doesn't exist.", p_id));
@@ -599,7 +599,7 @@ int64_t AStar3D::get_flags(int64_t p_id) const {
 	return p->flags;
 }
 
-void AStar3D::add_connection_flags(int64_t a, int64_t b, int64_t flag) {
+void AStar3D::add_connection_flags(PointID a, PointID b, int64_t flag) {
 	Segment s(a, b);
 	int64_t *flag_ptr = segment_flags.lookup_ptr(s);
 	if (flag_ptr == nullptr) {
@@ -609,7 +609,7 @@ void AStar3D::add_connection_flags(int64_t a, int64_t b, int64_t flag) {
 	*flag_ptr |= flag;
 }
 
-void AStar3D::remove_connection_flags(int64_t a, int64_t b, int64_t flag) {
+void AStar3D::remove_connection_flags(PointID a, PointID b, int64_t flag) {
 	Segment s(a, b);
 	int64_t *flag_ptr = segment_flags.lookup_ptr(s);
 	if (flag_ptr == nullptr) {
@@ -618,7 +618,7 @@ void AStar3D::remove_connection_flags(int64_t a, int64_t b, int64_t flag) {
 	*flag_ptr &= ~flag;
 }
 
-int64_t AStar3D::get_connection_flags(int64_t a, int64_t b) {
+int64_t AStar3D::get_connection_flags(PointID a, PointID b) {
 	Segment s(a, b);
 	int64_t *flag_ptr = segment_flags.lookup_ptr(s);
 	if (flag_ptr == nullptr) {
@@ -712,11 +712,11 @@ bool AStar2D::has_point(int64_t p_id) const {
 	return astar.has_point(p_id);
 }
 
-Vector<int64_t> AStar2D::get_point_connections(int64_t p_id) {
+Vector<PointID> AStar2D::get_point_connections(PointID p_id) {
 	return astar.get_point_connections(p_id);
 }
 
-PackedInt64Array AStar2D::get_point_ids() {
+PackedInt32Array AStar2D::get_point_ids() {
 	return astar.get_point_ids();
 }
 
@@ -924,7 +924,7 @@ bool AStar2D::_solve(AStar3D::Point *begin_point, AStar3D::Point *end_point) {
 		open_list.remove_at(open_list.size() - 1);
 		p->closed_pass = astar.pass; // Mark the point as closed.
 
-		for (OAHashMap<int64_t, AStar3D::Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
+		for (OAHashMap<PointID, AStar3D::Point *>::Iterator it = p->neighbors.iter(); it.valid; it = p->neighbors.next_iter(it)) {
 			AStar3D::Point *e = *(it.value); // The neighbor point.
 
 			if (!e->enabled || e->closed_pass == astar.pass) {
