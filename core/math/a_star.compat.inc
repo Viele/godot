@@ -30,12 +30,12 @@
 
 #ifndef DISABLE_DEPRECATED
 
-Vector<int64_t> AStar3D::_get_id_path_bind_compat_88047(int64_t p_from_id, int64_t p_to_id) {
-	return get_id_path(p_from_id, p_to_id, false);
+Vector<PointID> AStar3D::_get_id_path_bind_compat_88047(PointID p_from_id, PointID p_to_id) {
+	return get_id_path(p_from_id, p_to_id, 0, 0, 0, false);
 }
 
-Vector<Vector3> AStar3D::_get_point_path_bind_compat_88047(int64_t p_from_id, int64_t p_to_id) {
-	return get_point_path(p_from_id, p_to_id, false);
+Vector<Vector3> AStar3D::_get_point_path_bind_compat_88047(PointID p_from_id, PointID p_to_id) {
+	return get_point_path(p_from_id, p_to_id, 0, 0, false);
 }
 
 void AStar3D::_bind_compatibility_methods() {

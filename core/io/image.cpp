@@ -3375,6 +3375,52 @@ void Image::set_pixel(int p_x, int p_y, const Color &p_color) {
 	_set_color_at_ofs(data.ptrw(), ofs, p_color);
 }
 
+void Image::set_pixel_bytes(const int x, const int y, const PackedByteArray &bytes){
+#ifdef DEBUG_ENABLED
+	ERR_FAIL_INDEX(x, width);
+	ERR_FAIL_INDEX(y, height);
+#endif
+	int32_t bytes_per_pixel = -1;
+	switch (format) {
+		case FORMAT_R8:
+			bytes_per_pixel = 1;
+			break;
+		case FORMAT_RG8:
+			bytes_per_pixel = 2;
+			break;
+		case FORMAT_RGB8:
+			bytes_per_pixel = 3;
+			break;
+		case FORMAT_RGBA8:
+			bytes_per_pixel = 4;
+			break;
+		case FORMAT_RGBA4444:
+			bytes_per_pixel = 2;
+			break;
+		case FORMAT_RF:
+			bytes_per_pixel = 4;
+			break;
+		case FORMAT_RGF:
+			bytes_per_pixel = 8;
+			break;
+		case FORMAT_RGBF:
+			bytes_per_pixel = 12;
+			break;
+		default:
+			ERR_FAIL_MSG("Unsupported Image format.");
+			break;
+	}
+	if (bytes_per_pixel != bytes.size() || bytes_per_pixel == -1){
+		ERR_FAIL_MSG("Passed bytes are not the right length for a pixel.");
+		return;
+	}
+	uint32_t offset = y * width + x;
+	uint8_t *data_ptr = data.ptrw();
+	for (int i = 0; i < bytes.size(); i++){
+		data_ptr[offset * bytes_per_pixel + i] = bytes[i];
+	}
+}
+
 const uint8_t *Image::ptr() const {
 	return data.ptr();
 }
