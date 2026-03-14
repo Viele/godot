@@ -154,20 +154,9 @@ AnimationNode::NodeTimeInfo AnimationNodeAnimation::_process(const AnimationMixe
 	bool p_is_external_seeking = p_playback_info.is_external_seeking;
 
 	// 1. Progress for AnimationNode.
-	const double next_time = cur_time + cur_delta;
+	const double next_time = p_playback_info.time + p_playback_info.delta;
 	bool will_end = Animation::is_greater_or_equal_approx(next_time, cur_len);
 	bool is_started = p_seek && !p_is_external_seeking && Math::is_zero_approx(cur_time);
-
-	if (pause_on_markers){
-		for (const StringName &marker_name : anim->get_marker_names()){
-			const double marker_time = anim->get_marker_time(marker_name);
-			if (marker_time < cur_time || marker_time > next_time){
-				continue;
-			}
-			cur_delta = 0;
-			break;
-		}
-	}
 
 	// 1. Progress for AnimationNode.
 	if (is_started && advance_on_start) {
@@ -209,6 +198,18 @@ AnimationNode::NodeTimeInfo AnimationNodeAnimation::_process(const AnimationMixe
 					cur_delta = 0;
 				}
 			}
+		}
+	}
+
+	if (pause_on_markers) {
+		for (const StringName &marker_name : anim->get_marker_names()) {
+			const double marker_time = anim->get_marker_time(marker_name);
+			if (marker_time < prev_time || marker_time > next_time) {
+				continue;
+			}
+			cur_time = marker_time;
+			cur_delta = cur_time - marker_time;
+			break;
 		}
 	}
 

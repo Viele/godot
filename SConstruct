@@ -108,6 +108,8 @@ for x in sorted(glob.glob("platform/*")):
     sys.path.remove(tmppath)
     sys.modules.pop("detect")
 
+CacheDir(".compile_cache")
+
 # We let SCons build its default ENV as it includes OS-specific things which we don't
 # want to have to pull in manually. However we enforce no "tools", which we register
 # further down after parsing our platform-specific configuration.
