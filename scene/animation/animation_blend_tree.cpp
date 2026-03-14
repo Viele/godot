@@ -32,6 +32,60 @@
 
 #include "scene/resources/animation.h"
 
+void MarkerPauseCondition::set_prefix(const String &prefix) {
+	marker_prefix = prefix;
+}
+String MarkerPauseCondition::get_prefix() const {
+	return marker_prefix;
+}
+
+void MarkerPauseCondition::set_expression(const String &val) {
+	this->expression = val;
+	_expression_cache.unref();
+}
+String MarkerPauseCondition::get_expression() const {
+	return expression;
+}
+
+bool MarkerPauseCondition::applies_to_marker(const String &marker_name, const AnimationTree *animation_tree) {
+	if (!marker_prefix.is_empty() && !marker_name.begins_with(marker_prefix)) {
+		return false;
+	}
+	if (_expression_cache.is_null()) {
+		const String expression_stripped = expression.strip_edges();
+		_expression_cache.instantiate();
+		_expression_cache->parse(expression_stripped);
+	}
+
+	if (!_expression_cache.is_valid()) {
+		return false;
+	}
+
+	NodePath base_node_path = animation_tree->get_advance_expression_base_node();
+	Node *expression_base = animation_tree->get_node_or_null(base_node_path);
+
+	if (!expression_base) {
+		return false;
+	}
+	return _expression_cache->execute(Array(), expression_base, false, Engine::get_singleton()->is_editor_hint());
+}
+
+void MarkerPauseCondition::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_prefix", "prefix"), &MarkerPauseCondition::set_prefix);
+	ClassDB::bind_method(D_METHOD("get_prefix"), &MarkerPauseCondition::get_prefix);
+
+	ClassDB::bind_method(D_METHOD("set_expression", "expression"), &MarkerPauseCondition::set_expression);
+	ClassDB::bind_method(D_METHOD("get_expression"), &MarkerPauseCondition::get_expression);
+
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "marker_prefix"), "set_prefix", "get_prefix");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "expression"), "set_expression", "get_expression");
+}
+
+MarkerPauseCondition::MarkerPauseCondition() {
+}
+
+////////////////////////////////////////////////////////
+
 void AnimationNodeAnimation::set_animation(const StringName &p_name) {
 	animation = p_name;
 }
@@ -207,9 +261,14 @@ AnimationNode::NodeTimeInfo AnimationNodeAnimation::_process(const AnimationMixe
 			if (marker_time < prev_time || marker_time > next_time) {
 				continue;
 			}
-			cur_time = marker_time;
-			cur_delta = cur_time - marker_time;
-			break;
+			for (int i = 0; i < marker_pause_conditions.size(); i++) {
+				MarkerPauseCondition *condition = Object::cast_to<MarkerPauseCondition>(marker_pause_conditions[i]);
+				if (condition->applies_to_marker(marker_name, process_state->tree)) {
+					cur_time = marker_time;
+					cur_delta = cur_time - marker_time;
+					break;
+				}
+			}
 		}
 	}
 
@@ -379,6 +438,14 @@ Animation::LoopMode AnimationNodeAnimation::get_loop_mode() const {
 	return loop_mode;
 }
 
+void AnimationNodeAnimation::set_marker_pause_conditions(const TypedArray<MarkerPauseCondition> &conditions) {
+	marker_pause_conditions = conditions;
+}
+
+TypedArray<MarkerPauseCondition> AnimationNodeAnimation::get_marker_pause_conditions() const {
+	return marker_pause_conditions;
+}
+
 void AnimationNodeAnimation::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_animation", "name"), &AnimationNodeAnimation::set_animation);
 	ClassDB::bind_method(D_METHOD("get_animation"), &AnimationNodeAnimation::get_animation);
@@ -407,6 +474,9 @@ void AnimationNodeAnimation::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_loop_mode", "loop_mode"), &AnimationNodeAnimation::set_loop_mode);
 	ClassDB::bind_method(D_METHOD("get_loop_mode"), &AnimationNodeAnimation::get_loop_mode);
 
+	ClassDB::bind_method(D_METHOD("set_marker_pause_conditions", "conditions"), &AnimationNodeAnimation::set_marker_pause_conditions);
+	ClassDB::bind_method(D_METHOD("get_marker_pause_conditions"), &AnimationNodeAnimation::get_marker_pause_conditions);
+
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "animation"), "set_animation", "get_animation");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "play_mode", PROPERTY_HINT_ENUM, "Forward,Backward"), "set_play_mode", "get_play_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "advance_on_start"), "set_advance_on_start", "is_advance_on_start");
@@ -416,6 +486,7 @@ void AnimationNodeAnimation::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "start_offset", PROPERTY_HINT_RANGE, "-60,60,0.001,or_greater,or_less,hide_slider,suffix:s"), "set_start_offset", "get_start_offset");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "loop_mode", PROPERTY_HINT_ENUM, "None,Linear,Ping-Pong"), "set_loop_mode", "get_loop_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "pause_on_markers"), "set_pause_on_markers", "is_pause_on_markers");
+	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "marker_pause_conditions", PROPERTY_HINT_ARRAY_TYPE, "MarkerPauseCondition"), "set_marker_pause_conditions", "get_marker_pause_conditions");
 
 	BIND_ENUM_CONSTANT(PLAY_MODE_FORWARD);
 	BIND_ENUM_CONSTANT(PLAY_MODE_BACKWARD);

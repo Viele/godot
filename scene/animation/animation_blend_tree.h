@@ -30,7 +30,35 @@
 
 #pragma once
 
+#include "core/io/resource.h"
+#include "core/math/expression.h"
 #include "scene/animation/animation_tree.h"
+
+class MarkerPauseCondition : public Resource {
+	GDCLASS(MarkerPauseCondition, Resource);
+	// The markers on which this condition is valid.
+	// If empty the condition is always valid.
+	String marker_prefix;
+	// The condition under which to stop. If empty is always true.
+	String expression;
+
+	Ref<Expression> _expression_cache;
+
+public:
+	void set_prefix(const String &regex);
+	String get_prefix() const;
+
+	void set_expression(const String &expression);
+	String get_expression() const;
+
+	// Returns true if the condition applies to the given marker and playback should pause.
+	bool applies_to_marker(const String &marker_name, const AnimationTree *animation_tree);
+
+	MarkerPauseCondition();
+
+protected:
+	static void _bind_methods();
+};
 
 class AnimationNodeAnimation : public AnimationRootNode {
 	GDCLASS(AnimationNodeAnimation, AnimationRootNode);
@@ -50,6 +78,7 @@ class AnimationNodeAnimation : public AnimationRootNode {
 	uint64_t last_version = 0;
 	bool skip = false;
 	bool pause_on_markers = false;
+	TypedArray<MarkerPauseCondition> marker_pause_conditions;
 
 public:
 	enum PlayMode {
@@ -97,6 +126,9 @@ public:
 
 	void set_loop_mode(Animation::LoopMode p_loop_mode);
 	Animation::LoopMode get_loop_mode() const;
+
+	void set_marker_pause_conditions(const TypedArray<MarkerPauseCondition> &conditions);
+	TypedArray<MarkerPauseCondition> get_marker_pause_conditions() const;
 
 	AnimationNodeAnimation();
 
