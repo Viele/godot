@@ -49,6 +49,7 @@ class AnimationNodeAnimation : public AnimationRootNode {
 
 	uint64_t last_version = 0;
 	bool skip = false;
+	bool pause_on_markers = false;
 
 public:
 	enum PlayMode {
@@ -87,6 +88,9 @@ public:
 
 	void set_stretch_time_scale(bool p_stretch_time_scale);
 	bool is_stretching_time_scale() const;
+
+	void set_pause_on_markers(bool pause);
+	bool is_pause_on_markers();
 
 	void set_start_offset(double p_offset);
 	double get_start_offset() const;

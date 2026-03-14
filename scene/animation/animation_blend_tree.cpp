@@ -154,8 +154,20 @@ AnimationNode::NodeTimeInfo AnimationNodeAnimation::_process(const AnimationMixe
 	bool p_is_external_seeking = p_playback_info.is_external_seeking;
 
 	// 1. Progress for AnimationNode.
-	bool will_end = Animation::is_greater_or_equal_approx(cur_time + cur_delta, cur_len);
+	const double next_time = cur_time + cur_delta;
+	bool will_end = Animation::is_greater_or_equal_approx(next_time, cur_len);
 	bool is_started = p_seek && !p_is_external_seeking && Math::is_zero_approx(cur_time);
+
+	if (pause_on_markers){
+		for (const StringName &marker_name : anim->get_marker_names()){
+			const double marker_time = anim->get_marker_time(marker_name);
+			if (marker_time < cur_time || marker_time > next_time){
+				continue;
+			}
+			cur_delta = 0;
+			break;
+		}
+	}
 
 	// 1. Progress for AnimationNode.
 	if (is_started && advance_on_start) {
@@ -342,6 +354,14 @@ bool AnimationNodeAnimation::is_stretching_time_scale() const {
 	return stretch_time_scale;
 }
 
+void AnimationNodeAnimation::set_pause_on_markers(bool pause){
+	pause_on_markers = pause;
+}
+
+bool AnimationNodeAnimation::is_pause_on_markers(){
+	return pause_on_markers;
+}
+
 void AnimationNodeAnimation::set_start_offset(double p_offset) {
 	start_offset = p_offset;
 }
@@ -374,6 +394,9 @@ void AnimationNodeAnimation::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_timeline_length", "timeline_length"), &AnimationNodeAnimation::set_timeline_length);
 	ClassDB::bind_method(D_METHOD("get_timeline_length"), &AnimationNodeAnimation::get_timeline_length);
 
+	ClassDB::bind_method(D_METHOD("set_pause_on_markers", "pause"), &AnimationNodeAnimation::set_pause_on_markers);
+	ClassDB::bind_method(D_METHOD("is_pause_on_markers"), &AnimationNodeAnimation::is_pause_on_markers);
+
 	ClassDB::bind_method(D_METHOD("set_stretch_time_scale", "stretch_time_scale"), &AnimationNodeAnimation::set_stretch_time_scale);
 	ClassDB::bind_method(D_METHOD("is_stretching_time_scale"), &AnimationNodeAnimation::is_stretching_time_scale);
 
@@ -391,6 +414,7 @@ void AnimationNodeAnimation::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "stretch_time_scale"), "set_stretch_time_scale", "is_stretching_time_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "start_offset", PROPERTY_HINT_RANGE, "-60,60,0.001,or_greater,or_less,hide_slider,suffix:s"), "set_start_offset", "get_start_offset");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "loop_mode", PROPERTY_HINT_ENUM, "None,Linear,Ping-Pong"), "set_loop_mode", "get_loop_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "pause_on_markers"), "set_pause_on_markers", "is_pause_on_markers");
 
 	BIND_ENUM_CONSTANT(PLAY_MODE_FORWARD);
 	BIND_ENUM_CONSTANT(PLAY_MODE_BACKWARD);
