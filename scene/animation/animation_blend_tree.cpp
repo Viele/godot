@@ -263,7 +263,7 @@ AnimationNode::NodeTimeInfo AnimationNodeAnimation::_process(const AnimationMixe
 			}
 			for (int i = 0; i < marker_pause_conditions.size(); i++) {
 				MarkerPauseCondition *condition = Object::cast_to<MarkerPauseCondition>(marker_pause_conditions[i]);
-				if (condition->applies_to_marker(marker_name, process_state->tree)) {
+				if (condition && condition->applies_to_marker(marker_name, process_state->tree)) {
 					cur_time = marker_time;
 					cur_delta = cur_time - marker_time;
 					break;
