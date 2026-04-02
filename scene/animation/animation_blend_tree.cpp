@@ -256,7 +256,7 @@ AnimationNode::NodeTimeInfo AnimationNodeAnimation::_process(const AnimationMixe
 	}
 
 	if (pause_on_markers) {
-		for (const StringName &marker_name : anim->get_marker_names()) {
+		for (const String &marker_name : anim->get_marker_names()) {
 			const double marker_time = anim->get_marker_time(marker_name);
 			if (marker_time < prev_time || marker_time > next_time) {
 				continue;
