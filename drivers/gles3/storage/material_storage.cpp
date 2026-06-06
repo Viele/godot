@@ -1305,6 +1305,9 @@ MaterialStorage::MaterialStorage() {
 		actions.renames["CUSTOM2"] = "custom2_attrib";
 		actions.renames["CUSTOM3"] = "custom3_attrib";
 		actions.renames["LIGHT_VERTEX"] = "light_vertex";
+		// See https://github.com/godotengine/godot/pull/114093/changes
+		actions.renames["AABB_POS"] = "compressed_aabb_position_input";
+		actions.renames["AABB_SIZE"] = "abs(compressed_aabb_size_input)";
 
 		actions.renames["NODE_POSITION_WORLD"] = "model_matrix[3].xyz";
 		actions.renames["CAMERA_POSITION_WORLD"] = "scene_data.inv_view_matrix[3].xyz";

@@ -505,7 +505,7 @@ layout(std140) uniform MaterialUniforms { // ubo:3
 invariant gl_Position;
 
 void main() {
-	highp vec3 vertex = vertex_angle_attrib.xyz * compressed_aabb_size + compressed_aabb_position;
+	highp vec3 vertex = (compressed_aabb_size_input.x < 0.0) ? vertex_angle_attrib_input.xyz : (vertex_angle_attrib_input.xyz * compressed_aabb_size_input + compressed_aabb_position_input);
 
 	highp mat4 model_matrix = world_transform;
 #ifdef USE_INSTANCING
