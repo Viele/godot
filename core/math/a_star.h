@@ -120,8 +120,8 @@ class AStar3D : public RefCounted {
 	bool neighbor_filter_enabled = false;
 
 	bool _solve(
-		Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags, bool p_allow_partial_path
-	);
+			Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags,
+			int64_t connection_skip_flags, bool p_allow_partial_path, int64_t max_length);
 
 protected:
 	static void _bind_methods();
@@ -171,8 +171,12 @@ public:
 	PointID get_closest_point(const Vector3 &p_point, bool p_include_disabled = false) const;
 	Vector3 get_closest_position_in_segment(const Vector3 &p_point) const;
 
-	Vector<Vector3> get_point_path(PointID p_from_id, PointID p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0, bool p_allow_partial_path = false);
-	Vector<PointID> get_id_path(PointID p_from_id, PointID p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0, int64_t connection_skip_flags = 0, bool p_allow_partial_path = false);
+	Vector<Vector3> get_point_path(
+			PointID p_from_id, PointID p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0,
+			int64_t max_search = 0, bool p_allow_partial_path = false);
+	Vector<PointID> get_id_path(
+			PointID p_from_id, PointID p_to_id, int64_t required_flags = 0, int64_t skip_flags = 0,
+			int64_t connection_skip_flags = 0, int64_t max_search = 0, bool p_allow_partial_path = false);
 
 	void add_flags(PointID p_id, int64_t flag);
 	void remove_flags(PointID p_id, int64_t flag);

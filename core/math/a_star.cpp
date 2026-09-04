@@ -315,7 +315,9 @@ Vector3 AStar3D::get_closest_position_in_segment(const Vector3 &p_point) const {
 	return closest_point;
 }
 
-bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags, bool p_allow_partial_path) {
+bool AStar3D::_solve(
+		Point *begin_point, Point *end_point, int64_t required_flags, int64_t skip_flags,
+		int64_t connection_skip_flags, bool p_allow_partial_path, int64_t max_search) {
 	last_closest_point = nullptr;
 	pass++;
 
@@ -333,8 +335,12 @@ bool AStar3D::_solve(Point *begin_point, Point *end_point, int64_t required_flag
 	begin_point->abs_g_score = 0;
 	begin_point->abs_f_score = _estimate_cost(begin_point->id, end_point->id);
 	open_list.push_back(begin_point);
-
+	int32_t search_count = 0;
 	while (!open_list.is_empty()) {
+		if (max_search > 0 && search_count > max_search) {
+			return false;
+		}
+		search_count++;
 		Point *p = open_list[0]; // The currently processed point.
 
 		// Find point closer to end_point, or same distance to end_point but closer to begin_point.
@@ -442,7 +448,9 @@ real_t AStar3D::_compute_cost(PointID p_from_id, PointID p_to_id) {
 	return from_point->pos.distance_to(to_point->pos);
 }
 
-Vector<Vector3> AStar3D::get_point_path(PointID p_from_id, PointID p_to_id, int64_t required_flags, int64_t skip_flags, bool p_allow_partial_path) {
+Vector<Vector3> AStar3D::get_point_path(
+		PointID p_from_id, PointID p_to_id, int64_t required_flags, int64_t skip_flags,
+		int64_t max_search, bool p_allow_partial_path) {
 	Point **a_entry = points.getptr(p_from_id);
 	ERR_FAIL_COND_V_MSG(!a_entry, Vector<Vector3>(), vformat("Can't get point path. Point with id: %d doesn't exist.", p_from_id));
 	Point *a = *a_entry;
@@ -460,7 +468,7 @@ Vector<Vector3> AStar3D::get_point_path(PointID p_from_id, PointID p_to_id, int6
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags, 0, p_allow_partial_path);
+	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags, 0, p_allow_partial_path, max_search);
 	if (!found_route) {
 		if (!p_allow_partial_path || last_closest_point == nullptr) {
 			return Vector<Vector3>();
@@ -497,8 +505,8 @@ Vector<Vector3> AStar3D::get_point_path(PointID p_from_id, PointID p_to_id, int6
 }
 
 Vector<PointID> AStar3D::get_id_path(
-	PointID p_from_id, PointID p_to_id, int64_t required_flags, int64_t skip_flags, int64_t connection_skip_flags, bool p_allow_partial_path
-) {
+		PointID p_from_id, PointID p_to_id, int64_t required_flags, int64_t skip_flags,
+		int64_t connection_skip_flags, int64_t max_search, bool p_allow_partial_path) {
 	Point **a_entry = points.getptr(p_from_id);
 	ERR_FAIL_COND_V_MSG(!a_entry, Vector<PointID>(), vformat("Can't get id path. Point with id: %d doesn't exist.", p_from_id));
 	Point *a = *a_entry;
@@ -520,7 +528,8 @@ Vector<PointID> AStar3D::get_id_path(
 	Point *begin_point = a;
 	Point *end_point = b;
 
-	bool found_route = _solve(begin_point, end_point, required_flags, skip_flags, connection_skip_flags, p_allow_partial_path);
+	bool found_route = _solve(
+			begin_point, end_point, required_flags, skip_flags, connection_skip_flags, p_allow_partial_path, max_search);
 	if (!found_route) {
 		if (!p_allow_partial_path || last_closest_point == nullptr) {
 			return Vector<PointID>();
@@ -579,7 +588,6 @@ bool AStar3D::is_point_disabled(PointID p_id) const {
 
 	return !p->enabled;
 }
-
 
 void AStar3D::add_flags(PointID p_id, int64_t flag) {
 	Point *const *p = points.getptr(p_id);
@@ -682,8 +690,12 @@ void AStar3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position", "include_disabled"), &AStar3D::get_closest_point, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_closest_position_in_segment", "to_position"), &AStar3D::get_closest_position_in_segment);
 
-	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id", "required_flags", "skip_flags", "allow_partial_path"), &AStar3D::get_point_path, DEFVAL(0), DEFVAL(0), DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id", "required_flags", "skip_flags", "connections_skip_flags", "allow_partial_path"), &AStar3D::get_id_path, DEFVAL(0), DEFVAL(0), DEFVAL(0), DEFVAL(false));
+	ClassDB::bind_method(
+			D_METHOD("get_point_path", "from_id", "to_id", "required_flags", "skip_flags", "max_search", "allow_partial_path"),
+			&AStar3D::get_point_path, DEFVAL(0), DEFVAL(0), DEFVAL(0), DEFVAL(false));
+	ClassDB::bind_method(
+			D_METHOD("get_id_path", "from_id", "to_id", "required_flags", "skip_flags", "connections_skip_flags", "max_search", "allow_partial_path"),
+			&AStar3D::get_id_path, DEFVAL(0), DEFVAL(0), DEFVAL(0), DEFVAL(0), DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("add_flags", "id", "flag"), &AStar3D::add_flags);
 	ClassDB::bind_method(D_METHOD("remove_flags", "id", "flag"), &AStar3D::remove_flags);
